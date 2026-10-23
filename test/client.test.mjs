@@ -29,7 +29,7 @@ function loadClient() {
   globalThis.self = globalThis.window
   // eslint-disable-next-line no-new-func
   new Function('window', 'self', readFileSync(BUNDLE, 'utf8'))(globalThis.window, globalThis.self)
-  assert.equal(descriptor?.id, 'dsh-media-preview', 'bundle must register under the package name')
+  assert.equal(descriptor?.id, 'dsh-av-preview', 'bundle must register under the package name')
   return descriptor.factory(() => stubReact)
 }
 

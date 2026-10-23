@@ -1,5 +1,5 @@
 /**
- * dsh-media-preview — host half.
+ * dsh-av-preview — host half.
  *
  * Serves ONE prefix route, `/media`, that streams a video/audio file from disk
  * with HTTP Range support (206 Partial Content), so the side card's inline
@@ -27,7 +27,7 @@ import { homedir } from 'node:os'
 import { extname, resolve } from 'node:path'
 
 /** Plugin identity for cordis rows / client-module keying. */
-export const name = 'dsh-media-preview'
+export const name = 'dsh-av-preview'
 
 /** Services required before mounting: route registry, session cwd, connection fence. */
 export const inject = ['webServer', 'sessions', 'connection']
@@ -234,5 +234,5 @@ export function apply(ctx) {
         writeError(res, error)
       }
     },
-  }), 'dsh-media-preview: /media range route')
+  }), 'dsh-av-preview: /media range route')
 }

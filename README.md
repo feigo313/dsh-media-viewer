@@ -1,4 +1,4 @@
-# dsh-media-preview
+# dsh-av-preview
 
 给 [dsh-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar) 的**内联音视频预览**插件：侧边栏打开 `.mp4` / `.mp3` 时直接出一个能播、能拖时间轴的播放器，而不是「此文件类型不支持预览 · 下载查看」。
 
@@ -14,15 +14,15 @@
 ## 安装
 
 ```bash
-cd ~/.dsh && dsh plugin --profile web add dsh-media-preview
+cd ~/.dsh && dsh plugin --profile web add dsh-av-preview
 ```
 
 桌面版（profile 由 Electron 管理，CLI 会拒绝）改 profile 的 `package.json` 后装：
 
 ```bash
 # ~/.dsh/profiles/desktop/package.json
-#   dependencies: "dsh-media-preview": "^0.1.0"
-#   dsh.profile.bundles: 追加 "dsh-media-preview"
+#   dependencies: "dsh-av-preview": "^0.1.0"
+#   dsh.profile.bundles: 追加 "dsh-av-preview"
 cd ~/.dsh/profiles/desktop
 pnpm install
 ```

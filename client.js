@@ -1,5 +1,5 @@
 /*!
- * dsh-media-preview — client half (browser bundle).
+ * dsh-av-preview — client half (browser bundle).
  *
  * Registers ONE file viewer with `dsh-better-sidebar` through its public
  * service (`ctx.betterSidebar.registerFileViewer`), so a `.mp4` / `.mp3` opened
@@ -18,7 +18,7 @@
  * silent black box.
  */
 window.__ModuleLoader__.load({
-  id: "dsh-media-preview",
+  id: "dsh-av-preview",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
