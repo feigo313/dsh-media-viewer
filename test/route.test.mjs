@@ -3,7 +3,7 @@
 import { after, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { apply, parseRange, resolveTarget, mediaTypeForPath } from '../index.js'
@@ -26,7 +26,12 @@ async function serve(cwd, options = {}) {
   const routes = []
   const ctx = {
     effect: (cb) => { const d = cb(); return typeof d === 'function' ? d : () => {} },
-    connection: { requestRejection: () => (options.reject === true ? { status: 403 } : undefined) },
+    connection: {
+      requestRejection: () => {
+        if (options.throwInFence === true) throw new Error('fence exploded')
+        return options.reject === true ? { status: 403 } : undefined
+      },
+    },
     webServer: { register: (route) => { routes.push(route); return () => {} } },
     sessions: { get: () => (cwd === undefined ? undefined : { header: { cwd } }) },
   }
@@ -226,12 +231,62 @@ describe('/media route', () => {
     assert.equal(response.status, 403)
   })
 
-  it('rejects a non-GET/HEAD method', async () => {
+  it('answers instead of hanging when the fence itself throws', async () => {
+    const cwd = workspace('fence-throw')
+    writeFileSync(join(cwd, 'clip.mp4'), '0123456789')
+    // A host admission check that throws must not leave the socket unanswered
+    // (that path is also an unhandled rejection, fatal under Node defaults).
+    const { origin } = await serve(cwd, { throwInFence: true })
+
+    const response = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }))
+    assert.equal(response.status, 500)
+    assert.equal((await response.json()).error.code, 'internal')
+  })
+
+  it('rejects a non-GET/HEAD method with an Allow header', async () => {
     const cwd = workspace('method')
     writeFileSync(join(cwd, 'clip.mp4'), '0123456789')
     const { origin } = await serve(cwd)
 
     const response = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), { method: 'POST' })
     assert.equal(response.status, 405)
+    // RFC 9110 §15.5.6: a 405 MUST carry the methods it does allow.
+    assert.equal(response.headers.get('allow'), 'GET, HEAD')
+  })
+
+  it('still answers the JSON envelope when the file cannot be opened', { skip: process.platform === 'win32' ? 'chmod does not deny reads on Windows' : false }, async () => {
+    const cwd = workspace('unreadable')
+    const target = join(cwd, 'locked.mp4')
+    writeFileSync(target, '0123456789')
+    // stat() still sees the file; open() is what fails. The envelope has to
+    // come from before the status line commits, or the client gets a reset
+    // socket and the player shows nothing.
+    chmodSync(target, 0o000)
+    const { origin } = await serve(cwd)
+    try {
+      const response = await fetch(mediaUrl(origin, 'locked.mp4', { cwd }))
+      assert.equal(response.status, 500)
+      assert.equal((await response.json()).error.code, 'fs-error')
+    } finally {
+      chmodSync(target, 0o644)
+    }
+  })
+
+  it('survives a client that walks away mid-stream', async () => {
+    const cwd = workspace('abort')
+    writeFileSync(join(cwd, 'big.mp4'), Buffer.alloc(2 * 1024 * 1024, 7))
+    const { origin } = await serve(cwd)
+
+    const controller = new AbortController()
+    const response = await fetch(mediaUrl(origin, 'big.mp4', { cwd }), { signal: controller.signal })
+    assert.equal(response.status, 200)
+    const reader = response.body.getReader()
+    await reader.read()
+    controller.abort()
+    // The server must remain healthy (the descriptor behind the aborted stream
+    // is released by the response's close handler).
+    const again = await fetch(mediaUrl(origin, 'big.mp4', { cwd }), { headers: { range: 'bytes=0-3' } })
+    assert.equal(again.status, 206)
+    assert.equal(await again.text(), '\u0007\u0007\u0007\u0007')
   })
 })

@@ -21,7 +21,7 @@
  *  - the request itself must pass the host's connection fence
  *    (`ctx.connection.requestRejection`), exactly like the `/api` gateway.
  */
-import { createReadStream } from 'node:fs'
+import { closeSync, createReadStream, openSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { extname, resolve } from 'node:path'
@@ -180,6 +180,17 @@ function serveFile(req, res, path, size, type) {
   }
   const start = range === null ? 0 : range.start
   const end = range === null ? size - 1 : range.end
+  // Open BEFORE the status line commits. `stat` can see a file that cannot be
+  // opened (held with an exclusive share on Windows, ACL changed, deleted in
+  // between); failing here still produces the plugin's JSON envelope, while
+  // failing after `writeHead` can only reset the socket — the client sees
+  // ECONNRESET and the pane has nothing to show.
+  let fd
+  try {
+    fd = openSync(path, 'r')
+  } catch (error) {
+    throw new MediaError('fs-error', `cannot read "${path}": ${error?.code ?? error?.message ?? 'error'}`, 500)
+  }
   const headers = {
     ...baseHeaders,
     'content-length': String(end - start + 1),
@@ -187,11 +198,15 @@ function serveFile(req, res, path, size, type) {
   if (range !== null) headers['content-range'] = `bytes ${start}-${end}/${size}`
   res.writeHead(range === null ? 200 : 206, headers)
   if (req.method === 'HEAD') {
+    closeSync(fd)
     res.end()
     return
   }
-  const stream = createReadStream(path, { start, end })
+  const stream = createReadStream(path, { fd, start, end })
   stream.on('error', () => res.destroy())
+  // A client that walks away (scrub, tab close, seek) unbalances the pipe; the
+  // descriptor would then wait for a GC that never runs on it.
+  res.on('close', () => stream.destroy())
   stream.pipe(res)
 }
 
@@ -205,17 +220,20 @@ export function apply(ctx) {
     kind: 'prefix',
     path: '/media',
     handler: async (req, res) => {
-      if (!fence(req)) {
-        res.writeHead(403)
-        res.end('forbidden')
-        return
-      }
-      if (req.method !== 'GET' && req.method !== 'HEAD') {
-        res.writeHead(405)
-        res.end()
-        return
-      }
+      // The fence call sits INSIDE the try: a host admission check that throws
+      // must still produce an answer, not an unanswered socket plus an
+      // unhandled rejection (fatal under Node's default policy).
       try {
+        if (!fence(req)) {
+          res.writeHead(403)
+          res.end('forbidden')
+          return
+        }
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { allow: 'GET, HEAD' })
+          res.end()
+          return
+        }
         const url = new URL(req.url ?? '/', 'http://dsh.internal')
         const sessionId = url.searchParams.get('sessionId')
         const raw = url.searchParams.get('path')
