@@ -1,0 +1,44 @@
+{
+  "name": "dsh-media-preview",
+  "version": "0.1.0",
+  "description": "Inline video/audio preview for the dsh-better-sidebar side card — a /media route with HTTP Range, so clips play and scrub without downloading first",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-better-sidebar",
+    "video",
+    "audio",
+    "preview",
+    "http-range"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feigo313/dsh-media-preview.git"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  }
+}
