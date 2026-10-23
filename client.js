@@ -37,11 +37,25 @@ window.__ModuleLoader__.load({
       "mp3", "m4a", "aac", "wav", "flac", "oga", "opus", "weba", "aiff", "aif"
     ];
 
+    /**
+     * Resolve a plugin-relative URL against the document base.
+     *
+     * Root-absolute ("/media?...") breaks behind a reverse-proxy directory
+     * prefix and inside the desktop shell's dsh-app:// origin; the document
+     * base is what the sidebar itself resolves its own routes against.
+     */
+    function absolute(relative) {
+      if (typeof document !== "undefined" && typeof document.baseURI === "string" && document.baseURI !== "") {
+        return new URL(relative, document.baseURI).href;
+      }
+      return relative;
+    }
+
     /** The plugin's range-capable media route for one file. */
     function mediaUrl(scope, path) {
       var params = new URLSearchParams({ sessionId: scope.sessionId, path: path });
       if (scope.cwd !== undefined && scope.cwd !== "") params.set("cwd", scope.cwd);
-      return "/media?" + params.toString();
+      return absolute("media?" + params.toString());
     }
 
     /** The sidebar's raw-byte route, forced into a download. */
@@ -49,7 +63,7 @@ window.__ModuleLoader__.load({
       var params = new URLSearchParams({ sessionId: scope.sessionId, path: path });
       if (scope.cwd !== undefined && scope.cwd !== "") params.set("cwd", scope.cwd);
       params.set("download", "1");
-      return "/sidebar/file?" + params.toString();
+      return absolute("sidebar/file?" + params.toString());
     }
 
     function extOf(path) {
@@ -190,7 +204,7 @@ window.__ModuleLoader__.load({
       // re-activation throws "already registered".
       ctx.effect(function () {
         return ctx.betterSidebar.registerFileViewer({
-          id: "media",
+          id: "dsh-av-preview:media",
           title: "Media",
           icon: function (size) { return IconMediaOutline16(size); },
           exts: VIDEO_EXTS.concat(AUDIO_EXTS),

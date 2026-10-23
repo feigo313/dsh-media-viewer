@@ -62,7 +62,7 @@ describe('client bundle', () => {
       betterSidebar: { registerFileViewer: (d) => { registered.push(d); return () => {} } },
     })
     assert.equal(registered.length, 1)
-    assert.equal(registered[0].id, 'media')
+    assert.equal(registered[0].id, 'dsh-av-preview:media')
     assert.equal(registered[0].fetchStrategy, 'none')
     assert.equal(typeof registered[0].component, 'function')
   })
@@ -83,7 +83,8 @@ describe('client bundle', () => {
     assert.ok(video, 'no <video> in the tree')
     assert.equal(video.props.controls, true)
     assert.equal(video.props.preload, 'metadata')
-    assert.match(String(video.props.src), /^\/media\?/)
+    // Relative to document.baseURI at render time (no document in this harness).
+    assert.match(String(video.props.src), /^media\?/)
     assert.match(String(video.props.src), /path=%2Fwork%2Fclip\.mp4/)
     // A token, not a literal: a skin restyles the letterbox with the panel.
     assert.match(String(video.props.style.background), /var\(--dsw-/)
@@ -101,7 +102,7 @@ describe('client bundle', () => {
     const tree = viewer.component({ scope: { sessionId: 's', cwd: '/work' }, path: '/work/clip.mp4' })
     const link = flatten(tree).find((n) => n.type === 'a')
     assert.ok(link, 'no download link')
-    assert.match(String(link.props.href), /^\/sidebar\/file\?/)
+    assert.match(String(link.props.href), /^sidebar\/file\?/)
     assert.match(String(link.props.href), /download=1/)
   })
 

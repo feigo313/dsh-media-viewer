@@ -1,9 +1,16 @@
 {
   "name": "dsh-av-preview",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Inline video/audio preview for the dsh-better-sidebar side card — a /media route with HTTP Range, so clips play and scrub without downloading first",
   "type": "module",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": {
+      "default": "./client.js"
+    },
+    "./package.json": "./package.json"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -13,7 +20,8 @@
     "cordis.patch.yml",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "test"
   ],
   "scripts": {
     "test": "node --test"

@@ -104,7 +104,7 @@ describe('parseRange', () => {
     assert.equal(parseRange('bytes=0-1,4-5', 100), null)
     assert.equal(parseRange('bytes=9-2', 100), null)
     assert.deepEqual(parseRange('bytes=100-', 100), { unsatisfiable: true })
-    assert.deepEqual(parseRange('bytes=-0', 100), null)
+    assert.deepEqual(parseRange('bytes=-0', 100), { unsatisfiable: true })
     assert.deepEqual(parseRange('bytes=0-', 0), { unsatisfiable: true })
   })
 })
@@ -203,23 +203,110 @@ describe('/media route', () => {
     assert.equal(await response.text(), 'zyxwvu')
   })
 
-  it('answers a JSON envelope for a missing file, a directory and an empty file', async () => {
+  it('answers a JSON envelope for a missing file and a directory', async () => {
     const cwd = workspace('errors')
-    mkdirSync(join(cwd, 'folder'))
-    writeFileSync(join(cwd, 'empty.mp4'), '')
+    mkdirSync(join(cwd, 'folder.mp4'))
     const { origin } = await serve(cwd)
 
     const missing = await fetch(mediaUrl(origin, 'nope.mp4', { cwd }))
     assert.equal(missing.status, 404)
-    assert.equal((await missing.json()).error.code, 'fs-error')
+    const missingBody = await missing.json()
+    assert.equal(missingBody.error.code, 'fs-error')
+    // The body must not echo the resolved path: a caller that only sent a
+    // relative name would otherwise learn the workspace root.
+    assert.ok(!JSON.stringify(missingBody).includes(cwd), JSON.stringify(missingBody))
 
-    const directory = await fetch(mediaUrl(origin, 'folder', { cwd }))
+    const directory = await fetch(mediaUrl(origin, 'folder.mp4', { cwd }))
     assert.equal(directory.status, 400)
-    assert.match((await directory.json()).error.message, /not a file/)
+    assert.match((await directory.json()).error.message, /not a regular file/)
+  })
 
-    const empty = await fetch(mediaUrl(origin, 'empty.mp4', { cwd }))
-    assert.equal(empty.status, 400)
-    assert.match((await empty.json()).error.message, /is empty/)
+  it('serves an empty media file as a zero-length 200 (416 for a Range)', async () => {
+    const cwd = workspace('empty')
+    writeFileSync(join(cwd, 'empty.mp4'), '')
+    const { origin } = await serve(cwd)
+
+    const whole = await fetch(mediaUrl(origin, 'empty.mp4', { cwd }))
+    assert.equal(whole.status, 200)
+    assert.equal(whole.headers.get('content-length'), '0')
+    assert.equal(await whole.text(), '')
+
+    const ranged = await fetch(mediaUrl(origin, 'empty.mp4', { cwd }), { headers: { range: 'bytes=0-' } })
+    assert.equal(ranged.status, 416)
+    assert.equal(ranged.headers.get('content-range'), 'bytes */0')
+  })
+
+  it('refuses a non-media extension with 415 (this is not a local file reader)', async () => {
+    const cwd = workspace('allowlist')
+    writeFileSync(join(cwd, 'id_rsa.txt'), 'PRIVATE')
+    writeFileSync(join(cwd, 'notes.md'), '# hi')
+    const { origin } = await serve(cwd)
+
+    for (const target of ['id_rsa.txt', 'notes.md']) {
+      const response = await fetch(mediaUrl(origin, target, { cwd }))
+      assert.equal(response.status, 415, target)
+      assert.equal((await response.json()).error.code, 'unsupported-media')
+    }
+    // An NTFS alternate data stream keeps the extension unparseable → 415.
+    writeFileSync(join(cwd, 'clip.mp4'), 'media-bytes')
+    const ads = await fetch(mediaUrl(origin, 'clip.mp4:hidden', { cwd }))
+    assert.equal(ads.status, 415)
+  })
+
+  it('publishes an ETag and honours If-Range', async () => {
+    const cwd = workspace('etag')
+    writeFileSync(join(cwd, 'clip.mp4'), '0123456789')
+    const { origin } = await serve(cwd)
+
+    const first = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }))
+    const etag = first.headers.get('etag')
+    assert.ok(etag, 'no ETag')
+    assert.match(etag, /^W\/"/)
+
+    const matching = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), {
+      headers: { range: 'bytes=2-5', 'if-range': etag },
+    })
+    assert.equal(matching.status, 206)
+
+    // A stale validator means "the file changed, send it all".
+    const stale = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), {
+      headers: { range: 'bytes=2-5', 'if-range': 'W/"stale"' },
+    })
+    assert.equal(stale.status, 200)
+    assert.equal(await stale.text(), '0123456789')
+  })
+
+  it('ignores Range spellings the grammar does not cover', async () => {
+    const cwd = workspace('strict-range')
+    writeFileSync(join(cwd, 'clip.mp4'), '0123456789')
+    const { origin } = await serve(cwd)
+
+    for (const range of ['bytes=+2-3', 'bytes=0x2-3', 'bytes=1e1-']) {
+      const response = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), { headers: { range } })
+      assert.equal(response.status, 200, range)
+    }
+    // `bytes=-0` names no bytes: unsatisfiable, not "the whole file".
+    const zero = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), { headers: { range: 'bytes=-0' } })
+    assert.equal(zero.status, 416)
+  })
+
+  it('refuses a Windows network/device namespace path', { skip: process.platform !== 'win32' ? 'win32-only path shape' : false }, async () => {
+    const cwd = workspace('unc')
+    writeFileSync(join(cwd, 'clip.mp4'), '0123456789')
+    const { origin } = await serve(cwd)
+
+    for (const target of ['\\\\?\\C:\\Windows\\win.ini', '\\\\.\\C:\\Windows\\win.ini', '\\\\127.0.0.1\\c$\\Windows\\win.ini']) {
+      const response = await fetch(mediaUrl(origin, target, { cwd }))
+      assert.equal(response.status, 400, target)
+      assert.match((await response.json()).error.message, /network and device paths/)
+    }
+  })
+
+  it('answers 404 when the session is unknown and no cwd hint was sent', async () => {
+    const { origin } = await serve(undefined)
+    const response = await fetch(mediaUrl(origin, 'clip.mp4'))
+    assert.equal(response.status, 404)
+    assert.equal((await response.json()).error.code, 'unknown-session')
   })
 
   it('refuses a request the connection fence rejects', async () => {
