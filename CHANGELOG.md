@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-10-23
+
+- **强验证器**：ETag 去掉 `W/` 前缀——`If-Range` 按 RFC 9110 §13.1.5 只接受强实体标签。
+- **manifest 契约测试**（7 个用例）：钉住 `dsh.client` 必须有 `exports["./client"]`、bundle patch 的 `name` 等于包名、`files` 里的每一项都存在、安装期不得有 `postinstall` / `prepare`、客户端 bundle 只能用 `require("react")`。0.1.0 的那个阻断 bug 现在会被测试直接拒绝。
+- 测试总数 39（38 通过 + 1 个 Windows-only 跳过）。
+
 ## 0.1.1 — 2026-10-23
 
 发布前的独立审计（三个子代理：安全/协议、对抗性测试、宿主集成）之后的硬化。0.1.0 从未发布到 npm。

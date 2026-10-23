@@ -303,7 +303,7 @@ export function apply(ctx) {
           throw new MediaError('fs-error', `cannot read file (${error?.code ?? 'error'})`, 404)
         })
         if (!info.isFile()) throw new MediaError('fs-error', 'not a regular file', 400)
-        const etag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`
+        const etag = `"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`
         serveFile(req, res, path, info.size, type, etag)
       } catch (error) {
         writeError(res, error)

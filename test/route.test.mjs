@@ -261,7 +261,8 @@ describe('/media route', () => {
     const first = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }))
     const etag = first.headers.get('etag')
     assert.ok(etag, 'no ETag')
-    assert.match(etag, /^W\/"/)
+    // If-Range requires a STRONG validator (RFC 9110 §13.1.5) — no W/ prefix.
+    assert.match(etag, /^"/)
 
     const matching = await fetch(mediaUrl(origin, 'clip.mp4', { cwd }), {
       headers: { range: 'bytes=2-5', 'if-range': etag },
