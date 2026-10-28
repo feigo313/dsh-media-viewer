@@ -136,7 +136,7 @@ window.__ModuleLoader__.load({
       ctx.effect(function () {
         return ctx.betterSidebar.registerFileViewer({
           id: "dsh-media-viewer:media",
-          title: "视频 / 音频",
+          title: "Media",
           exts: VIDEO_EXTS.concat(AUDIO_EXTS),
           // 50 > the in-place patch's 20, so this viewer wins while both exist.
           priority: 50,
