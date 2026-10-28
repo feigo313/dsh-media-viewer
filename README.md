@@ -1,11 +1,15 @@
 # dsh-media-viewer
 
-**给 DSH 侧栏（`dsh-better-sidebar`）补上音视频预览**：在侧栏里点开 `.mp4` / `.mp3`，直接出播放器，能播、能拖时间轴，不用下载、不用起本地服务。
+<h3 align="center">
+<code>dsh-better-sidebar</code> 好用，唯一短板是播不了音视频——<br/>
+这个仓库就是它的「插件中的插件」，只补这一件事。
+</h3>
 
-> A tiny DSH plugin that adds video / audio preview to the `dsh-better-sidebar` side card.
-> It registers one file viewer through the sidebar's public service; playback goes through the
-> sidebar's own `/sidebar/file` route (bytes → Blob), so nothing here depends on that route's
-> Content-Type or on HTTP Range support.
+<p align="center"><i>A plugin-of-a-plugin: it adds the one thing <code>dsh-better-sidebar</code> cannot do — playing video and audio in the side card.</i></p>
+
+<p align="center"><b>就是个小玩意，自用为主：不上插件市场，也不发 npm。</b>想用就 clone 本仓库，在 profile 里用 <code>file:</code> 指过来。</p>
+
+点开侧栏里的 `.mp4` / `.mp3`，直接出播放器，能播、能拖时间轴；不用下载，也不用起本地服务。
 
 ---
 

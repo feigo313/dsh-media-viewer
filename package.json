@@ -1,7 +1,7 @@
 {
   "name": "dsh-media-viewer",
   "version": "1.0.0",
-  "description": "DSH 侧栏（dsh-better-sidebar）的音视频预览插件：注册一个文件查看器，用 /sidebar/file + Blob 播放，侧栏升级不覆盖",
+  "description": "dsh-better-sidebar 好用，唯一短板是播不了音视频——这是它的「插件中的插件」，只补这一件事",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -34,5 +34,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/feigo313/dsh-media-viewer.git"
-  }
+  },
+  "homepage": "https://github.com/feigo313/dsh-media-viewer#readme"
 }
