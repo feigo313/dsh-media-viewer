@@ -1,7 +1,7 @@
 {
-  "name": "dsh-av-preview",
-  "version": "0.1.2",
-  "description": "Inline video/audio preview for the dsh-better-sidebar side card — a /media route with HTTP Range, so clips play and scrub without downloading first",
+  "name": "dsh-media-viewer",
+  "version": "1.0.0",
+  "description": "DSH 侧栏（dsh-better-sidebar）的音视频预览插件：注册一个文件查看器，用 /sidebar/file + Blob 播放，侧栏升级不覆盖",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -18,28 +18,8 @@
     "index.js",
     "client.js",
     "cordis.patch.yml",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE",
-    "test"
+    "README.md"
   ],
-  "scripts": {
-    "test": "node --test"
-  },
-  "keywords": [
-    "dsh",
-    "dsh-plugin",
-    "dsh-better-sidebar",
-    "video",
-    "audio",
-    "preview",
-    "http-range"
-  ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/feigo313/dsh-av-preview.git"
-  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -48,5 +28,11 @@
       "inject": [],
       "platform": "web"
     }
+  },
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feigo313/dsh-media-viewer.git"
   }
 }

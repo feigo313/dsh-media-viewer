@@ -1,27 +1,7 @@
-# dsh-av-preview bundle patch
+# dsh-media-viewer bundle patch
 #
-# This file is the `dsh.bundle.patch` layer of the package: when the plugin is
-# installed through the official CLI —
-#
-#   dsh plugin --profile <name> add dsh-av-preview
-#
-# — the command reconciles `dsh.profile.bundles` against installed packages
-# and, seeing this declaration, appends `dsh-av-preview` to the bundle stack.
-# The profile boot then merges THIS patch (a single `insert` of the plugin row)
-# exactly like a manual cordis.patch.yml mount line. The entry `name` must
-# equal the package name: `dsh-client-modules` keys its table by package name
-# and serves the client bundle from the route
-# `/plugins/??<name>/client.js&rev=<hash>`.
-#
-# The `disabled` guard mirrors what dsh-better-sidebar does for its own row: if
-# an aggregate bundle already mounts `dsh-av-preview` under a different id, this
-# row steps aside instead of racing it (two rows for one package trigger
-# "resolves from multiple active Loader sources" in client-modules, and two
-# `/media` prefix routes are a hard duplicate-route error in the host web
-# server). The loader only sees rows BEFORE this one, so the aggregate bundle
-# must precede this entry in `dsh.profile.bundles` — the normal order, since
-# `dsh plugin add` appends new bundles last.
+# One insert row: the profile boot mounts this package's host half (a no-op)
+# and serves ./client.js at /plugins/??dsh-media-viewer/client.js&rev=<hash>.
 - insert:
-    - id: media-preview
-      name: 'dsh-av-preview'
-      disabled: !!js "[...ctx.loader.entries()].some((e) => e.options.name === 'dsh-av-preview' && e.options.id !== 'media-preview' && !e.disabled)"
+    - id: media-viewer
+      name: 'dsh-media-viewer'

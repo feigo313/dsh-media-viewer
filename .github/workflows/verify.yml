@@ -1,4 +1,4 @@
-name: test
+name: verify
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  bundle:
     strategy:
       fail-fast: false
       matrix:
@@ -19,5 +19,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      # Zero dependencies on purpose: `node --test` needs nothing installed.
-      - run: node --test
+      # Zero dependencies: the check loads the client bundle with a stub react
+      # and asserts the viewer descriptor + rendered element.
+      - run: node verify.mjs

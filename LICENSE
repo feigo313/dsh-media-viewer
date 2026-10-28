@@ -1,10 +1,6 @@
 MIT License
 
-Copyright (c) 2026 zemul — original `dsh-video-preview`, from which this project
-was forked (https://github.com/zemul/dsh-video-preview)
-
-Copyright (c) 2026 MycAgi (feigo313) — the fork, the `/media` route rework, and
-the dsh-better-sidebar integration fixes
+Copyright (c) 2026 MycAgi (feigo313)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
